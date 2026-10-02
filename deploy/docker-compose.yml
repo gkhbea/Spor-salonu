@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL 16 Veritabanı
+  postgres:
+    image: postgres:16-alpine
+    container_name: fittrack_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-fittrack_db}
+      POSTGRES_USER: ${DB_USER:-fittrack_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-fittrack_secure_password_2026!}
+      TZ: UTC
+    volumes:
+      - fittrack_pgdata:/var/lib/postgresql/data
+      - ../api/src/database/fittrack_schema.sql:/docker-entrypoint-initdb.d/01_fittrack_schema.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - fittrack_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-fittrack_user} -d ${DB_NAME:-fittrack_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. FitTrack NestJS API
+  api:
+    build:
+      context: ../api
+      dockerfile: Dockerfile
+    container_name: fittrack_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-fittrack_user}
+      DB_PASSWORD: ${DB_PASSWORD:-fittrack_secure_password_2026!}
+      DB_NAME: ${DB_NAME:-fittrack_db}
+      DB_SSL: "false"
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-fittrack_jwt_access_super_secret_key_2026_x99!}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-fittrack_jwt_refresh_super_secret_key_2026_r77!}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      THROTTLE_TTL: 60000
+      THROTTLE_LIMIT: 60
+    networks:
+      - fittrack_net
+
+  # 3. Nginx Reverse Proxy + SSL
+  nginx:
+    image: nginx:alpine
+    container_name: fittrack_nginx
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - fittrack_net
+
+volumes:
+  fittrack_pgdata:
+    driver: local
+
+networks:
+  fittrack_net:
+    driver: bridge

@@ -1,0 +1,43 @@
+# Node / NestJS
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Secrets & Environment (Rule 9: Sırlar repoya atılmaz)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+deploy/nginx/ssl/*.pem
+deploy/nginx/ssl/*.key
+
+# Test Coverage & Logs
+coverage/
+*.log
+logs/
+
+# Flutter & Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+app/build/
+*.mode1v3
+*.mode2v3
+*.moved-aside
+*.pbxuser
+*.perspectivev3
+
+# Database dumps / backups
+*.sql.gz
+/var/backups/
+
+# OS Files
+.DS_Store
+Thumbs.db
